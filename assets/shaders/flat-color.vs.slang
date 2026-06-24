@@ -17,7 +17,7 @@ static const float2[] quadXYVertices = {
 };
 
 [shader("vertex")]
-VSOutput vertexMain(VSInput input) {
+VSOutput main(VSInput input) {
   VSOutput output;
   output.position = float4(quadXYVertices[input.vertexID], 0.0f, 1.0f);
   return output;
