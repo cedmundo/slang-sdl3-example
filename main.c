@@ -12,6 +12,7 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#include "quad.h"
 #include "shader.h"
 
 #define WINDOW_TITLE "Slang + SDLGPU Example"
@@ -25,13 +26,8 @@ typedef struct {
 
   // our resources
   SDL_GPUGraphicsPipeline *flat_color_pipeline;
+  SingleQuad *quad;
 } ExampleApp;
-
-typedef struct {
-  SDL_FColor from_color;
-  SDL_FColor to_color;
-  float time;
-} FragUniformData;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   (void)argc;
@@ -68,7 +64,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  // get resources
+  // create resources
   ShaderOptions vert_shader_opts = {0};
   vert_shader_opts.filename = "flat-color.vs.spirv";
   vert_shader_opts.stage = SDL_GPU_SHADERSTAGE_VERTEX;
@@ -85,6 +81,30 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
+  app->quad = CreateSingleQuad(app->device);
+  if (app->quad == NULL) {
+    SDL_Log("Error: failed to create quad: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
+  // Initial upload (static data):
+  SDL_GPUCommandBuffer *cmdbuf = SDL_AcquireGPUCommandBuffer(app->device);
+  if (cmdbuf == NULL) {
+    SDL_Log("Error: failed to get initial command buffer: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
+  SDL_GPUCopyPass *static_data_copy_pass = SDL_BeginGPUCopyPass(cmdbuf);
+  {
+    if (static_data_copy_pass == NULL) {
+      SDL_Log("Error: failed to get initial copy pass: %s", SDL_GetError());
+      return SDL_APP_FAILURE;
+    }
+
+    UploadSingleQuad(app->quad, app->device, static_data_copy_pass);
+  }
+  SDL_EndGPUCopyPass(static_data_copy_pass);
+  SDL_SubmitGPUCommandBuffer(cmdbuf);
   return SDL_APP_CONTINUE;
 }
 
@@ -92,6 +112,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   ExampleApp *app = (ExampleApp *)appstate;
   SDL_assert(app != NULL);
 
+  // Update everything, including camera, positions, etc...
+  UpdateSingleQuad(app->quad);
+
+  // Render everything...
   SDL_GPUCommandBuffer *cmdbuf = SDL_AcquireGPUCommandBuffer(app->device);
   if (cmdbuf == NULL) {
     SDL_Log("Error: SDL_AcquireGPUCommandBuffer(): %s", SDL_GetError());
@@ -116,16 +140,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     {
       SDL_SetGPUViewport(render_pass, &app->viewport);
 
-      // This will render the quad on screen
-      FragUniformData fs_uniforms = {0};
-      fs_uniforms.time = (float)SDL_GetTicks() / 1000.0f;
-      fs_uniforms.from_color = (SDL_FColor){0.0f, 0.0f, 0.0f, 1.0f};
-      fs_uniforms.to_color = (SDL_FColor){1.0f, 0.5f, 0.5f, 1.0f};
-
+      // Bind flat color pipeline
       SDL_BindGPUGraphicsPipeline(render_pass, app->flat_color_pipeline);
-      SDL_PushGPUFragmentUniformData(cmdbuf, 0, &fs_uniforms,
-                                     sizeof(FragUniformData));
-      SDL_DrawGPUPrimitives(render_pass, 6, 1, 0, 0);
+      {
+        // Render the quad using the bound pipeline
+        RenderSingleQuad(app->quad, cmdbuf, render_pass);
+      }
+      SDL_BindGPUGraphicsPipeline(render_pass, NULL);
     }
     SDL_EndGPURenderPass(render_pass);
   }
@@ -156,6 +177,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     return;
   }
 
+  DestroySingleQuad(app->quad, app->device);
   SDL_ReleaseGPUGraphicsPipeline(app->device, app->flat_color_pipeline);
   SDL_DestroyGPUDevice(app->device);
   SDL_DestroyWindow(app->window);

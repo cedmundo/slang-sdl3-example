@@ -13,5 +13,5 @@ find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
 
 # Main target
 add_executable(slang-sdl3-example)
-target_sources(slang-sdl3-example PRIVATE shader.c main.c)
+target_sources(slang-sdl3-example PRIVATE shader.c quad.c main.c)
 target_link_libraries(slang-sdl3-example PRIVATE SDL3)

@@ -1,0 +1,26 @@
+#ifndef QUAD_H
+#define QUAD_H
+
+#include <SDL3/SDL_gpu.h>
+
+typedef struct {
+  float time;
+} QuadFUniformData;
+
+typedef struct {
+  SDL_GPUBuffer *buffer;
+  SDL_GPUTransferBuffer *transfer_buffer;
+  SDL_GPUBufferBinding buffer_bindings[3];
+  Uint32 indices_count;
+  QuadFUniformData frag_uniforms;
+  bool uploaded;
+} SingleQuad;
+
+SingleQuad *CreateSingleQuad(SDL_GPUDevice *device);
+void DestroySingleQuad(SingleQuad *quad, SDL_GPUDevice *device);
+void UploadSingleQuad(SingleQuad *quad, SDL_GPUDevice *device,
+                      SDL_GPUCopyPass *copy_pass);
+void UpdateSingleQuad(SingleQuad *quad);
+void RenderSingleQuad(SingleQuad *quad, SDL_GPUCommandBuffer *cmdbuf,
+                      SDL_GPURenderPass *render_pass);
+#endif /* QUAD_H */

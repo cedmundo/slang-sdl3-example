@@ -1,11 +1,10 @@
 struct UniformData {
-  float4 from_color;
-  float4 to_color;
   float time;
 };
 
 struct PSInput {
   float4 position : SV_Position;
+  float3 color;
 };
 
 struct PSOutput {
@@ -19,6 +18,6 @@ layout(set = 3, binding = 0) ParameterBlock<UniformData> uniforms;
 PSOutput main(PSInput input) {
   PSOutput output;
   float factor = (sin(uniforms.time) + 1) / 2;
-  output.color = lerp(uniforms.from_color, uniforms.to_color, factor);
+  output.color = float4(input.color * factor, 1.0);
   return output;
 }
