@@ -90,7 +90,7 @@ SDL_GPUGraphicsPipeline *CreatePipeline(SDL_GPUDevice *device,
   pipeline_create_info.vertex_shader = vert_shader;
   pipeline_create_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
   pipeline_create_info.vertex_input_state = (SDL_GPUVertexInputState){
-      .num_vertex_attributes = 2,
+      .num_vertex_attributes = 3,
       .vertex_attributes =
           (SDL_GPUVertexAttribute[]){
               {.buffer_slot = 0,
@@ -101,8 +101,12 @@ SDL_GPUGraphicsPipeline *CreatePipeline(SDL_GPUDevice *device,
                .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
                .location = 1,
                .offset = 0},
+              {.buffer_slot = 2,
+               .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+               .location = 2,
+               .offset = 0},
           },
-      .num_vertex_buffers = 2,
+      .num_vertex_buffers = 3,
       .vertex_buffer_descriptions =
           (SDL_GPUVertexBufferDescription[]){
               {.slot = 0,
@@ -113,6 +117,10 @@ SDL_GPUGraphicsPipeline *CreatePipeline(SDL_GPUDevice *device,
                .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
                .instance_step_rate = 0,
                .pitch = sizeof(float) * 3},
+              {.slot = 2,
+               .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+               .instance_step_rate = 0,
+               .pitch = sizeof(float) * 2},
           },
   };
   pipeline = SDL_CreateGPUGraphicsPipeline(device, &pipeline_create_info);

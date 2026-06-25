@@ -73,6 +73,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   frag_shader_opts.filename = "flat-color.fs.spirv";
   frag_shader_opts.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
   frag_shader_opts.uniform_buffer_count = 1;
+  frag_shader_opts.sampler_count = 1;
 
   app->flat_color_pipeline = CreatePipeline(app->device, app->window,
                                             vert_shader_opts, frag_shader_opts);
