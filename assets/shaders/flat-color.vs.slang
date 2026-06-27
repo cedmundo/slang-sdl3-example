@@ -3,6 +3,7 @@ struct VSInput {
   float3 position : POSITION;
   float3 color : COLOR;
   float2 uvs : TEXCOORD0;
+  uint instanceID : SV_InstanceID;
 };
 
 struct VSOutput {
@@ -11,10 +12,17 @@ struct VSOutput {
   float2 uvs;
 };
 
+struct InstanceData {
+  float2 position;
+}
+
+layout(set = 0, binding = 0) StructuredBuffer<InstanceData> instances;
+
 [shader("vertex")]
 VSOutput main(VSInput input) {
   VSOutput output;
-  output.position = float4(input.position, 1.0f);
+  float3 instance_position = float3(instances[input.instanceID].position, 0.0f);
+  output.position = float4(input.position + instance_position, 1.0f);
   output.color = input.color;
   output.uvs = input.uvs;
   return output;

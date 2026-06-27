@@ -8,10 +8,10 @@
 #include <SDL3/SDL_timer.h>
 
 static const float v_pos_buffer[][3] = {
-    {+0.5, +0.5, 0},
-    {+0.5, -0.5, 0},
-    {-0.5, +0.5, 0},
-    {-0.5, -0.5, 0},
+    {+0.1, +0.1, 0},
+    {+0.1, -0.1, 0},
+    {-0.1, +0.1, 0},
+    {-0.1, -0.1, 0},
 };
 
 static const float v_col_buffer[][3] = {
@@ -130,6 +130,7 @@ void UploadSingleQuad(SingleQuad* quad, SDL_GPUDevice* device, SDL_GPUCopyPass* 
     return;
   }
 
+  // Upload vertex data
   void* gpu_staging = SDL_MapGPUTransferBuffer(device, quad->transfer_buffer, false);
   {
     SDL_memset(gpu_staging, 0, QUAD_BUFFER_SIZE);
@@ -174,11 +175,18 @@ void UpdateSingleQuad(SingleQuad* quad) {
 
 void RenderSingleQuad(SingleQuad* quad,
                       SDL_GPUCommandBuffer* cmdbuf,
-                      SDL_GPURenderPass* render_pass) {
+                      SDL_GPURenderPass* render_pass,
+                      SDL_GPUBuffer** storage_buffers,
+                      size_t storage_buffers_count,
+                      size_t instances_count) {
+  if (storage_buffers != NULL) {
+    SDL_BindGPUVertexStorageBuffers(render_pass, 0, storage_buffers, storage_buffers_count);
+  }
+
   SDL_BindGPUVertexBuffers(render_pass, 0, quad->buffer_bindings, 3);
   SDL_BindGPUIndexBuffer(render_pass, &quad->buffer_bindings[INDICES_BINDING_IDX],
                          SDL_GPU_INDEXELEMENTSIZE_32BIT);
   SDL_PushGPUFragmentUniformData(cmdbuf, 0, &quad->frag_uniforms, sizeof(QuadFUniformData));
   SDL_BindGPUFragmentSamplers(render_pass, 0, &quad->texture->sampler_binding, 1);
-  SDL_DrawGPUIndexedPrimitives(render_pass, quad->indices_count, 1, 0, 0, 1);
+  SDL_DrawGPUIndexedPrimitives(render_pass, quad->indices_count, instances_count, 0, 0, 1);
 }

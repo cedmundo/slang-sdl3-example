@@ -6,7 +6,7 @@
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_stdinc.h>
 
-SDL_GPUShader *LoadShader(SDL_GPUDevice *device, ShaderOptions options) {
+SDL_GPUShader* LoadShader(SDL_GPUDevice* device, ShaderOptions options) {
   SDL_assert(device != NULL);
 
   char shader_rel_filename[255] = {0};
@@ -20,7 +20,7 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, ShaderOptions options) {
   }
 
   size_t code_size;
-  void *code_data = SDL_LoadFile(shader_rel_filename, &code_size);
+  void* code_data = SDL_LoadFile(shader_rel_filename, &code_size);
   if (code_data == NULL) {
     SDL_Log("Couldn't load shader code: %s", SDL_GetError());
     return NULL;
@@ -37,28 +37,26 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, ShaderOptions options) {
       .num_storage_buffers = options.storage_buffer_count,
       .num_storage_textures = options.storage_texture_count,
   };
-  SDL_GPUShader *shader = SDL_CreateGPUShader(device, &shader_create_info);
+  SDL_GPUShader* shader = SDL_CreateGPUShader(device, &shader_create_info);
   SDL_Log("Loaded shader: %s", shader_rel_filename);
   SDL_free(code_data);
   return shader;
 }
 
-SDL_GPUGraphicsPipeline *CreatePipeline(SDL_GPUDevice *device,
-                                        SDL_Window *window,
+SDL_GPUGraphicsPipeline* CreatePipeline(SDL_GPUDevice* device,
+                                        SDL_Window* window,
                                         ShaderOptions vert_options,
                                         ShaderOptions frag_options) {
-  SDL_GPUGraphicsPipeline *pipeline = NULL;
-  SDL_GPUShader *vert_shader = LoadShader(device, vert_options);
+  SDL_GPUGraphicsPipeline* pipeline = NULL;
+  SDL_GPUShader* vert_shader = LoadShader(device, vert_options);
   if (vert_shader == NULL) {
-    SDL_Log("Error: failed to load shader: %s %s", vert_options.filename,
-            SDL_GetError());
+    SDL_Log("Error: failed to load shader: %s %s", vert_options.filename, SDL_GetError());
     goto terminate;
   }
 
-  SDL_GPUShader *frag_shader = LoadShader(device, frag_options);
+  SDL_GPUShader* frag_shader = LoadShader(device, frag_options);
   if (frag_shader == NULL) {
-    SDL_Log("Error: failed to load shader: %s %s", frag_options.filename,
-            SDL_GetError());
+    SDL_Log("Error: failed to load shader: %s %s", frag_options.filename, SDL_GetError());
     goto terminate;
   }
 
@@ -80,8 +78,7 @@ SDL_GPUGraphicsPipeline *CreatePipeline(SDL_GPUDevice *device,
   // this are the targets to render (the swapchain texture)
   SDL_GPUGraphicsPipelineTargetInfo color_target_info = {0};
   color_target_info.num_color_targets = 1;
-  color_target_info.color_target_descriptions =
-      (SDL_GPUColorTargetDescription[]){color_desc};
+  color_target_info.color_target_descriptions = (SDL_GPUColorTargetDescription[]){color_desc};
 
   // finally we can create the actual pipeline
   SDL_GPUGraphicsPipelineCreateInfo pipeline_create_info = {0};

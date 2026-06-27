@@ -1,7 +1,7 @@
 add_custom_target(slang-sdl3-example-vs
     COMMAND slangc
       -target spirv
-      -profile spirv_1_0
+      -profile spirv_1_3
       -o ${CMAKE_BINARY_DIR}/flat-color.vs.spirv
       -entry main
       ${CMAKE_SOURCE_DIR}/assets/shaders/flat-color.vs.slang
@@ -11,7 +11,7 @@ add_custom_target(slang-sdl3-example-vs
 add_custom_target(slang-sdl3-example-fs
     COMMAND slangc
       -target spirv
-      -profile spirv_1_0
+      -profile spirv_1_3
       -o ${CMAKE_BINARY_DIR}/flat-color.fs.spirv
       -entry main
       ${CMAKE_SOURCE_DIR}/assets/shaders/flat-color.fs.slang

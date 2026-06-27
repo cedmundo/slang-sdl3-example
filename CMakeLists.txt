@@ -23,6 +23,6 @@ add_subdirectory(assets)
 
 # Main target
 add_executable(slang-sdl3-example)
-target_sources(slang-sdl3-example PRIVATE shader.c quad.c texture.c main.c)
+target_sources(slang-sdl3-example PRIVATE shader.c texture.c quad.c quad_group.c main.c)
 target_link_libraries(slang-sdl3-example PRIVATE SDL3 SDL3_image-shared)
 add_dependencies(slang-sdl3-example slang-sdl3-example-vs slang-sdl3-example-fs slang-sdl3-example-texture)
