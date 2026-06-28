@@ -13,12 +13,13 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#include "pipeline.h"
 #include "quad_group.h"
-#include "shader.h"
 
 #define WINDOW_TITLE "Slang + SDLGPU Example"
 #define WINDOW_HEIGHT 500
 #define WINDOW_WIDTH 500
+#define QUAD_COUNT (1e5)
 #define VK_MAKE_API_VERSION(variant, major, minor, patch)                                         \
   ((((uint32_t)(variant)) << 29U) | (((uint32_t)(major)) << 22U) | (((uint32_t)(minor)) << 12U) | \
    ((uint32_t)(patch)))
@@ -34,7 +35,8 @@ typedef struct {
   SDL_GPUViewport viewport;
 
   // our resources
-  SDL_GPUGraphicsPipeline* flat_color_pipeline;
+  SDL_GPUGraphicsPipeline* quad_g_pipeline;
+  SDL_GPUComputePipeline* quad_c_pipeline;
   QuadGroup* quad_group;
 } ExampleApp;
 
@@ -87,25 +89,20 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
   }
 
   // create resources
-  ShaderOptions vert_shader_opts = {0};
-  vert_shader_opts.filename = "flat-color.vs.spirv";
-  vert_shader_opts.stage = SDL_GPU_SHADERSTAGE_VERTEX;
-  vert_shader_opts.storage_buffer_count = 1;
-
-  ShaderOptions frag_shader_opts = {0};
-  frag_shader_opts.filename = "flat-color.fs.spirv";
-  frag_shader_opts.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-  frag_shader_opts.uniform_buffer_count = 1;
-  frag_shader_opts.sampler_count = 1;
-
-  app->flat_color_pipeline =
-      CreatePipeline(app->device, app->window, vert_shader_opts, frag_shader_opts);
-  if (app->flat_color_pipeline == NULL) {
-    SDL_Log("Error: failed to create pipeline: %s", SDL_GetError());
+  app->quad_c_pipeline = CreateQuadComputePipeline(app->device, "quad-group.spirv");
+  if (app->quad_c_pipeline == NULL) {
+    SDL_Log("Error: failed to create compute pipeline: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
 
-  app->quad_group = CreateQuadGroup(app->device, 50);
+  app->quad_g_pipeline = CreateQuadGraphicsPipeline(app->device, app->window, "flat-color.vs.spirv",
+                                                    "flat-color.fs.spirv");
+  if (app->quad_g_pipeline == NULL) {
+    SDL_Log("Error: failed to create graphics pipeline: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
+  app->quad_group = CreateQuadGroup(app->device, QUAD_COUNT);
   if (app->quad_group == NULL) {
     SDL_Log("Error: failed to create group: %s", SDL_GetError());
     return SDL_APP_FAILURE;
@@ -136,24 +133,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
   ExampleApp* app = (ExampleApp*)appstate;
   SDL_assert(app != NULL);
 
-  // Update everything, including camera, positions, etc...
-  UpdateQuadGroup(app->quad_group);
-
   // Copy instance data and render
   SDL_GPUCommandBuffer* cmdbuf = SDL_AcquireGPUCommandBuffer(app->device);
-  if (cmdbuf == NULL) {
-    SDL_Log("Error: SDL_AcquireGPUCommandBuffer(): %s", SDL_GetError());
-    return SDL_APP_FAILURE;
-  }
-  SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(cmdbuf);
-  {
-    // Upload dynamic data
-    UploadQuadGroupFrame(app->quad_group, app->device, copy_pass);
-  }
-  SDL_EndGPUCopyPass(copy_pass);
-  SDL_SubmitGPUCommandBuffer(cmdbuf);
-
-  cmdbuf = SDL_AcquireGPUCommandBuffer(app->device);
   if (cmdbuf == NULL) {
     SDL_Log("Error: SDL_AcquireGPUCommandBuffer(): %s", SDL_GetError());
     return SDL_APP_FAILURE;
@@ -163,6 +144,9 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
   if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmdbuf, app->window, &swapchain_texture, NULL, NULL)) {
     SDL_Log("Warning: could not acquire GPU swapchain texture");
   }
+
+  // Update everything, including camera, positions, etc...
+  UpdateQuadGroup(app->quad_group, cmdbuf, app->quad_c_pipeline);
 
   if (swapchain_texture != NULL) {
     SDL_GPUColorTargetInfo color_target_info = {0};
@@ -176,7 +160,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
       SDL_SetGPUViewport(render_pass, &app->viewport);
 
       // Bind flat color pipeline
-      SDL_BindGPUGraphicsPipeline(render_pass, app->flat_color_pipeline);
+      SDL_BindGPUGraphicsPipeline(render_pass, app->quad_g_pipeline);
       {
         // Render the quad using the bound pipeline
         RenderQuadGroup(app->quad_group, cmdbuf, render_pass);
@@ -216,8 +200,12 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     DestroyQuadGroup(app->quad_group, app->device);
   }
 
-  if (app->flat_color_pipeline != NULL) {
-    SDL_ReleaseGPUGraphicsPipeline(app->device, app->flat_color_pipeline);
+  if (app->quad_g_pipeline != NULL) {
+    SDL_ReleaseGPUGraphicsPipeline(app->device, app->quad_g_pipeline);
+  }
+
+  if (app->quad_c_pipeline != NULL) {
+    SDL_ReleaseGPUComputePipeline(app->device, app->quad_c_pipeline);
   }
 
   if (app->device != NULL) {
